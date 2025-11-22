@@ -1,0 +1,12 @@
+# Dockerfile.dev
+FROM golang:1.25 AS builder
+WORKDIR /app
+# Install air for hot reload (new module path)
+RUN go install github.com/air-verse/air@latest
+# Pre-fetch modules
+COPY go.mod go.sum ./
+RUN go mod download
+# Copy source (will be overridden by volume in compose, but required for initial run)
+COPY . .
+EXPOSE 5000
+ENTRYPOINT ["/go/bin/air", "-c", ".air.toml"]
