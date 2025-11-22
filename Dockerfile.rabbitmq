@@ -1,0 +1,11 @@
+# Dockerfile.rabbitmq
+FROM rabbitmq:4-management-alpine
+# Enable management plugin for web UI
+RUN rabbitmq-plugins enable rabbitmq_management
+# Expose ports for AMQP and Management UI
+EXPOSE 5672 15672
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD rabbitmq-diagnostics -q ping
+# Start RabbitMQ server
+CMD ["rabbitmq-server"]

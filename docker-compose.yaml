@@ -1,0 +1,305 @@
+services:
+  dependencies:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod.dependencies  # Assuming a separate dep Dockerfile if needed, or adjust
+    image: levpay_dependencies_prod
+    container_name: dependencies_builder
+    networks:
+      - app_network
+  gateway:
+    restart: unless-stopped
+    image: nginx:latest
+    container_name: gateway
+    ports:
+      - 5000:80
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - redis
+      - db
+      - rabbitmq
+      - minio
+      - app
+      - auth
+      - user
+      - wallet
+      - transaction
+      - kyc
+      - file
+      - notification
+      - billing
+      - admin
+      - cron
+    networks:
+      - app_network
+  redis:
+    image: redis:alpine
+    container_name: redis
+    restart: always
+    volumes:
+      - redis_data:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASS:-redispassword}
+    command:
+      [
+        "redis-server",
+        "--appendonly",
+        "yes",
+        "--maxmemory",
+        "256mb",
+        "--maxmemory-policy",
+        "allkeys-lru",
+        "--dir",
+        "/data",
+      ]
+    networks:
+      - app_network
+  rabbitmq:
+    image: rabbitmq:4-management-alpine
+    hostname: rabbitmq
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RMQ_USER:-rmquser}
+      - RABBITMQ_DEFAULT_PASS=${RMQ_PASSWORD:-rmqpassword}
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit log_levels [{connection,error},{default,error}] disk_free_limit 2147483648
+    volumes:
+      - rmq_data:/var/lib/rabbitmq
+    networks:
+      - app_network
+  db:
+    image: postgres:16-alpine
+    container_name: db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASS:-postgres}
+      POSTGRES_DB: ${DB_NAME:-levpay}
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5432:5432
+    networks:
+      - app_network
+  minio:
+    image: minio/minio
+    container_name: minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_PASS:-minioadmin}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL:-http://localhost:5000/minio/ui/}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - app_network
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - MAKE_RULE=app_prod
+    container_name: app
+    restart: unless-stopped
+    environment:
+      DB_SCHEMA: ${APP_DB_SCHEMA:-app}
+      APP_SERVICE: ${APP_APP_SERVICE:-app}
+      RMQ_QUEUE: ${APP_RMQ_QUEUE:-general}
+    depends_on:
+      - dependencies
+      - db
+      - rabbitmq
+    networks:
+      - app_network
+  auth:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - MAKE_RULE=auth_prod
+    container_name: auth
+    restart: unless-stopped
+    environment:
+      DB_SCHEMA: ${AUTH_DB_SCHEMA:-auth}
+      APP_SERVICE: ${AUTH_APP_SERVICE:-auth}
+      RMQ_QUEUE: ${AUTH_RMQ_QUEUE:-auth}
+    depends_on:
+      - dependencies
+      - db
+      - rabbitmq
+    networks:
+      - app_network
+  user:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - MAKE_RULE=user_prod
+    container_name: user
+    restart: unless-stopped
+    environment:
+      DB_SCHEMA: ${USER_DB_SCHEMA:-user}
+      APP_SERVICE: ${USER_APP_SERVICE:-user}
+      RMQ_QUEUE: ${USER_RMQ_QUEUE:-user}
+    depends_on:
+      - dependencies
+      - db
+      - rabbitmq
+    networks:
+      - app_network
+  wallet:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - MAKE_RULE=wallet_prod
+    container_name: wallet
+    restart: unless-stopped
+    environment:
+      DB_SCHEMA: ${WALLET_DB_SCHEMA:-wallet}
+      APP_SERVICE: ${WALLET_APP_SERVICE:-wallet}
+      RMQ_QUEUE: ${WALLET_RMQ_QUEUE:-wallet}
+    depends_on:
+      - dependencies
+      - db
+      - rabbitmq
+    networks:
+      - app_network
+  transaction:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - MAKE_RULE=transaction_prod
+    container_name: transaction
+    restart: unless-stopped
+    environment:
+      DB_SCHEMA: ${TRANSACTION_DB_SCHEMA:-transaction}
+      APP_SERVICE: ${TRANSACTION_APP_SERVICE:-transaction}
+      RMQ_QUEUE: ${TRANSACTION_RMQ_QUEUE:-transaction}
+    depends_on:
+      - dependencies
+      - db
+      - rabbitmq
+    networks:
+      - app_network
+  kyc:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - MAKE_RULE=kyc_prod
+    container_name: kyc
+    restart: unless-stopped
+    environment:
+      DB_SCHEMA: ${KYC_DB_SCHEMA:-kyc}
+      APP_SERVICE: ${KYC_APP_SERVICE:-kyc}
+      RMQ_QUEUE: ${KYC_RMQ_QUEUE:-kyc}
+    depends_on:
+      - dependencies
+      - db
+      - rabbitmq
+      - minio
+    networks:
+      - app_network
+  file:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - MAKE_RULE=file_prod
+    container_name: file
+    restart: unless-stopped
+    environment:
+      DB_SCHEMA: ${FILE_DB_SCHEMA:-file}
+      APP_SERVICE: ${FILE_APP_SERVICE:-file}
+      RMQ_QUEUE: ${FILE_RMQ_QUEUE:-file}
+    depends_on:
+      - dependencies
+      - db
+      - rabbitmq
+      - minio
+    networks:
+      - app_network
+  notification:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - MAKE_RULE=notification_prod
+    container_name: notification
+    restart: unless-stopped
+    environment:
+      DB_SCHEMA: ${NOTIFICATION_DB_SCHEMA:-notification}
+      APP_SERVICE: ${NOTIFICATION_APP_SERVICE:-notification}
+      RMQ_QUEUE: ${NOTIFICATION_RMQ_QUEUE:-notification}
+    depends_on:
+      - dependencies
+      - db
+      - rabbitmq
+    networks:
+      - app_network
+  billing:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - MAKE_RULE=billing_prod
+    container_name: billing
+    restart: unless-stopped
+    environment:
+      DB_SCHEMA: ${BILLING_DB_SCHEMA:-billing}
+      APP_SERVICE: ${BILLING_APP_SERVICE:-billing}
+      RMQ_QUEUE: ${BILLING_RMQ_QUEUE:-billing}
+    depends_on:
+      - dependencies
+      - db
+      - rabbitmq
+    networks:
+      - app_network
+  admin:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - MAKE_RULE=admin_prod
+    container_name: admin
+    restart: unless-stopped
+    environment:
+      DB_SCHEMA: ${ADMIN_DB_SCHEMA:-admin}
+      APP_SERVICE: ${ADMIN_APP_SERVICE:-admin}
+      RMQ_QUEUE: ${ADMIN_RMQ_QUEUE:-admin}
+    depends_on:
+      - dependencies
+      - db
+      - rabbitmq
+    networks:
+      - app_network
+  cron:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+      args:
+        - MAKE_RULE=cron_prod
+    container_name: cron
+    restart: unless-stopped
+    environment:
+      DB_SCHEMA: ${CRON_DB_SCHEMA:-cron}
+      APP_SERVICE: ${CRON_APP_SERVICE:-cron}
+      RMQ_QUEUE: ${CRON_RMQ_QUEUE:-cron}
+    depends_on:
+      - dependencies
+      - db
+      - rabbitmq
+    networks:
+      - app_network
+volumes:
+  pg_data:
+  rmq_data:
+  minio_data:
+  redis_data:
+networks:
+  app_network:
