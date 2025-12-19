@@ -1,0 +1,37 @@
+# .air.toml — LevPay Hot Reload Config
+root = "."
+tmp_dir = "tmp"
+
+[build]
+# Build the correct service using APP_SERVICE env var
+cmd = 'sh -lc "mkdir -p tmp && /usr/local/go/bin/go build -o tmp/main ./cmd/${APP_SERVICE}/main.go"'
+bin = "tmp/main"
+include_ext = ["go", "mod", "sum", "tmpl", "html"]
+exclude_dir = ["vendor", "tmp", "migrations", "docs", "nginx"]
+delay = 300
+kill_delay = 500
+send_interrupt = true
+
+[color]
+  app = "green"
+  build = "yellow"
+  main = "magenta"
+  runner = "cyan"
+  watcher = "blue"
+
+[log]
+  main_only = false
+  silent = false
+  time = true
+
+[misc]
+  clean_on_exit = true
+
+[proxy]
+  enabled = true
+  app_port = 5000
+  proxy_port = 8080
+
+[screen]
+  clear_on_rebuild = true
+  keep_scroll = false

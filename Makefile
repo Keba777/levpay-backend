@@ -20,7 +20,7 @@ DEPENDENCIES_DOCKERFILE_PROD=dep.prod.Dockerfile
 DEPENDENCIES_DOCKERFILE_DEV=dep.dev.Dockerfile
 DOCKER_COMPOSE_FILE_DEV=docker-compose.dev.yaml
 DOCKER_COMPOSE_FILE_PROD=docker-compose.yaml
-ENV_FILE_PATH=.env.example
+ENV_FILE_PATH=.env
 .PHONY: all
 ##### DEVELOPMENT COMMANDS #####
 swagger:
