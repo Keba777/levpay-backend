@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Keba777/levpay-backend/internal/config"
+	"github.com/Keba777/levpay-backend/internal/models"
 	"github.com/Keba777/levpay-backend/internal/utils"
 
 	"gorm.io/driver/postgres"
@@ -55,37 +56,24 @@ func Connect() {
 }
 
 func AutoMigrate() error {
-	// switch config.CFG.App.Service {
-	// case "app":
-	// 	return DB.AutoMigrate(
-	// 		&models.SystemConfig{},
-	// 		&models.AuditLog{},
-	// 	)
-	// case "auth":
-	// 	return DB.AutoMigrate(
-	// 		&models.User{},
-	// 		&models.Session{},
-	// 		&models.PasswordReset{},
-	// 		&models.TwoFactorSecret{},
-	// 	)
-	// case "user":
-	// 	return DB.AutoMigrate(&models.UserProfile{})
-	// case "wallet":
-	// 	return DB.AutoMigrate(&models.Wallet{}, &models.WalletTransaction{})
-	// case "transaction":
-	// 	return DB.AutoMigrate(&models.Transaction{})
-	// case "kyc":
-	// 	return DB.AutoMigrate(&models.KYCSubmission{}, &models.KYCDocument{})
-	// case "file":
-	// 	return DB.AutoMigrate(&models.UploadedFile{})
-	// case "notification":
-	// 	return DB.AutoMigrate(&models.Notification{})
-	// case "billing":
-	// 	return DB.AutoMigrate(&models.Invoice{}, &models.Payment{})
-	// case "admin":
-	// 	return DB.AutoMigrate(&models.AdminUser{}, &models.Permission{})
-	// default:
-	// 	return nil
-	// }
-	return nil
+	return DB.AutoMigrate(
+		// Core user and authentication models
+		&models.User{},
+		&models.Session{},
+
+		// Wallet and financial models
+		&models.Wallet{},
+		&models.Transaction{},
+		&models.PaymentMethod{},
+		&models.Invoice{},
+
+		// KYC and verification models
+		&models.KYCDocument{},
+
+		// Communication models
+		&models.Notification{},
+
+		// Audit and security models
+		&models.AuditLog{},
+	)
 }

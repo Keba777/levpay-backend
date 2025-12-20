@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"os/signal"
 	"sync"
@@ -10,7 +9,9 @@ import (
 
 	"github.com/Keba777/levpay-backend/internal/config"
 	"github.com/Keba777/levpay-backend/internal/database"
+	"github.com/Keba777/levpay-backend/internal/models"
 	"github.com/Keba777/levpay-backend/internal/utils"
+	"github.com/Keba777/levpay-backend/router"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -19,20 +20,23 @@ func main() {
 	config.InitConfig()
 	database.Connect()
 
-	logger := utils.GetLogger("auth")
-	logger.Info("Running database AutoMigrate...")
+	// AutoMigrate only auth-related models for this service
 	if !config.CFG.DB.SkipAutoMigrate {
-		if err := database.AutoMigrate(); err != nil {
-			logger.ErrorWithErr("AutoMigrate failed", err)
-			panic(fmt.Sprintf("AutoMigrate failed: %v", err))
-		}
+		database.DB.AutoMigrate(
+			&models.User{},
+			&models.Session{},
+		)
 	}
-	logger.Info("AutoMigrate completed successfully")
+
+	// Initialize JWT and password utilities
+	utils.InitJWT(os.Getenv("JWT_SECRET"))
+	utils.InitPasswordUtils(12)
 
 	app := fiber.New(fiber.Config{
 		Network: "tcp",
 	})
 
+	// Health check routes
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Status(200).JSON(fiber.Map{
 			"status":  "ok",
@@ -43,6 +47,9 @@ func main() {
 		return c.SendStatus(200)
 	})
 
+	// Setup auth routes
+	router.SetupAuthRoutes(app, database.DB)
+
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt)
 
@@ -52,6 +59,7 @@ func main() {
 
 	go func() {
 		<-done
+		logger := utils.GetLogger("auth")
 		logger.Info("Graceful shutdown initiated")
 		serviceShutdown.Add(1)
 		defer serviceShutdown.Done()
@@ -59,10 +67,13 @@ func main() {
 	}()
 
 	if err := app.Listen(config.CFG.App.Listen); err != nil {
+		logger := utils.GetLogger("auth")
 		logger.ErrorWithErr("Failed to start auth service", err)
 		panic(err)
 	}
 
 	serviceShutdown.Wait()
+
+	logger := utils.GetLogger("auth")
 	logger.Info("Auth service shutdown completed")
 }
