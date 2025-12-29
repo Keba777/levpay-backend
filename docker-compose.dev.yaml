@@ -9,19 +9,19 @@ services:
     ports:
       - 4003:80
     environment:
-      APP_SERVICE_URL: levpay_app:5000
-      AUTH_SERVICE_URL: levpay_auth:5000
-      USER_SERVICE_URL: levpay_user:5000
-      WALLET_SERVICE_URL: levpay_wallet:5000
-      TRANSACTION_SERVICE_URL: levpay_transaction:5000
-      KYC_SERVICE_URL: levpay_kyc:5000
-      FILE_SERVICE_URL: levpay_file:5000
-      NOTIFICATION_SERVICE_URL: levpay_notification:5000
-      BILLING_SERVICE_URL: levpay_billing:5000
-      ADMIN_SERVICE_URL: levpay_admin:5000
-      CRON_SERVICE_URL: levpay_cron:5000
-      MINIO_SERVICE_URL: levpay_minio:9001
-      RMQ_SERVICE_URL: levpay_rabbitmq:15672
+      APP_SERVICE_URL: app:5000
+      AUTH_SERVICE_URL: auth:5000
+      USER_SERVICE_URL: user:5000
+      WALLET_SERVICE_URL: wallet:5000
+      TRANSACTION_SERVICE_URL: transaction:5000
+      KYC_SERVICE_URL: kyc:5000
+      FILE_SERVICE_URL: file:5000
+      NOTIFICATION_SERVICE_URL: notification:5000
+      BILLING_SERVICE_URL: billing:5000
+      ADMIN_SERVICE_URL: admin:5000
+      CRON_SERVICE_URL: cron:5000
+      MINIO_SERVICE_URL: minio:9001
+      RMQ_SERVICE_URL: rabbitmq:15672
     volumes:
       - ./nginx/templates/api-local.conf.template:/etc/nginx/templates/default.conf.template:ro
       - ./nginx/ssl/:/etc/nginx/ssl/:ro
@@ -42,7 +42,7 @@ services:
       - admin
       - cron
     command: >
-      sh -c 'until wget -qO- http://levpay_app:5000/health >/dev/null 2>&1; do echo "waiting for app..."; sleep 1; done;
+      sh -c 'until wget -qO- http://app:5000/health >/dev/null 2>&1; do echo "waiting for app..."; sleep 1; done;
              echo "App service ready, starting nginx...";
              /docker-entrypoint.sh nginx -g "daemon off;"'
     networks:
