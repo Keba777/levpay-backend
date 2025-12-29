@@ -100,6 +100,7 @@ func main() {
 	router.SetupNotificationRoutes(api, database.DB)
 	router.SetupFileRoutes(api, database.DB)
 	router.SetupBillingRoutes(api, database.DB)
+	router.SetupAdminRoutes(api, database.DB)
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt)

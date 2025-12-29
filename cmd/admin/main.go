@@ -11,6 +11,7 @@ import (
 	"github.com/Keba777/levpay-backend/internal/config"
 	"github.com/Keba777/levpay-backend/internal/database"
 	"github.com/Keba777/levpay-backend/internal/utils"
+	"github.com/Keba777/levpay-backend/router"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -42,6 +43,10 @@ func main() {
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendStatus(200)
 	})
+
+	// Setup API Routes
+	api := app.Group("/api")
+	router.SetupAdminRoutes(api, database.DB)
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt)
