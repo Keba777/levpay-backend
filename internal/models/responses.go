@@ -100,17 +100,3 @@ type PaymentMethodResponse struct {
 	// Details are intentionally omitted for security
 	LastFourDigits string `json:"last_four_digits,omitempty"` // For cards
 }
-
-// ==================== Invoice Responses ====================
-
-// InvoiceResponse for invoice data
-type InvoiceResponse struct {
-	ID            uuid.UUID  `json:"id"`
-	MerchantID    uuid.UUID  `json:"merchant_id"`
-	Amount        float64    `json:"amount"`
-	Currency      string     `json:"currency"`
-	Status        string     `json:"status"`
-	DueDate       *time.Time `json:"due_date,omitempty"`
-	TransactionID *uuid.UUID `json:"transaction_id,omitempty"`
-	CreatedAt     time.Time  `json:"created_at"`
-}
