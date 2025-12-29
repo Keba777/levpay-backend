@@ -210,10 +210,6 @@ func (h *Handler) UpdateSettings(c *fiber.Ctx) error {
 
 // ListUsers (Admin only)
 func (h *Handler) ListUsers(c *fiber.Ctx) error {
-	// TODO: Verify Admin Role? Usually middleware handles this, or check here.
-	// For now, assuming middleware restricts access to this route if needed,
-	// or we check role.
-
 	userID, err := getUserID(c)
 	if err != nil {
 		return err
@@ -251,6 +247,43 @@ func (h *Handler) ListUsers(c *fiber.Ctx) error {
 		Total: int(total),
 		Page:  req.Page,
 		Limit: req.Limit,
+	})
+}
+
+// SearchUsers allows users to find recipients (Limited data)
+func (h *Handler) SearchUsers(c *fiber.Ctx) error {
+	queryStr := c.Query("query")
+	if queryStr == "" {
+		return c.JSON(fiber.Map{"records": []interface{}{}, "total": 0})
+	}
+
+	req := models.ListedRequest{
+		Keywords: queryStr,
+		Limit:    10,
+		Page:     1,
+	}
+
+	users, total, err := h.repo.ListUsers(req)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Failed to search users")
+	}
+
+	// Sanitize heavily for privacy - only show name, username, and avatar
+	var sanitized []fiber.Map
+	for _, u := range users {
+		sanitized = append(sanitized, fiber.Map{
+			"id":         u.ID,
+			"first_name": u.FirstName,
+			"last_name":  u.LastName,
+			"username":   u.Username,
+			"email":      u.Email, // Email is needed for the transfer endpoint
+			"avatar_url": u.AvatarURL,
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"records": sanitized,
+		"total":   total,
 	})
 }
 

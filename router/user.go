@@ -20,6 +20,7 @@ func SetupUserRoutes(api fiber.Router, db *gorm.DB) {
 	// Profile management
 	users.Get("/me", handler.GetProfile)
 	users.Put("/me", handler.UpdateProfile)
+	users.Get("/search", handler.SearchUsers)
 
 	// Settings
 	users.Get("/settings", handler.GetSettings)
