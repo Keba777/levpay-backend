@@ -53,16 +53,17 @@ func (u *User) PrepareResponse() UserResponse {
 	}
 
 	return UserResponse{
-		ID:          u.ID,
-		FirstName:   u.FirstName,
-		LastName:    u.LastName,
-		Username:    username,
-		AvatarURL:   avatar,
-		Email:       u.Email,
-		Phone:       phone,
-		Preferences: prefs,
-		KYCStatus:   u.KYCStatus,
-		Role:        u.Role,
-		CreatedAt:   u.CreatedAt,
+		ID:           u.ID,
+		FirstName:    u.FirstName,
+		LastName:     u.LastName,
+		Username:     username,
+		AvatarURL:    avatar,
+		Email:        u.Email,
+		Phone:        phone,
+		Preferences:  prefs,
+		KYCStatus:    u.KYCStatus,
+		Role:         u.Role,
+		Is2FAEnabled: u.TwoFAEnabled,
+		CreatedAt:    u.CreatedAt,
 	}
 }
