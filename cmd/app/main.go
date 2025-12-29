@@ -11,6 +11,8 @@ import (
 	"github.com/Keba777/levpay-backend/internal/config"
 	"github.com/Keba777/levpay-backend/internal/database"
 	"github.com/Keba777/levpay-backend/internal/models"
+	"github.com/Keba777/levpay-backend/internal/rabbitmq"
+	"github.com/Keba777/levpay-backend/internal/storage"
 	"github.com/Keba777/levpay-backend/internal/utils"
 	"github.com/Keba777/levpay-backend/router"
 
@@ -21,6 +23,8 @@ import (
 func main() {
 	config.InitConfig()
 	database.Connect()
+	storage.InitMinio()
+	rabbitmq.InitRabbitMQ(config.CFG)
 
 	logger := utils.GetLogger("app")
 	logger.Info("Running database AutoMigrate...")
@@ -45,6 +49,9 @@ func main() {
 
 			// Audit and security models
 			&models.AuditLog{},
+
+			// File management models
+			&models.File{},
 		); err != nil {
 			logger.ErrorWithErr("AutoMigrate failed", err)
 			panic(fmt.Sprintf("AutoMigrate failed: %v", err))
@@ -58,7 +65,8 @@ func main() {
 	utils.InitPasswordUtils(12) // bcrypt complexity
 
 	app := fiber.New(fiber.Config{
-		Network: "tcp",
+		Network:   "tcp",
+		BodyLimit: 10 * 1024 * 1024, // 10MB limit for file uploads
 	})
 
 	// CORS middleware
@@ -79,8 +87,19 @@ func main() {
 		return c.SendStatus(200)
 	})
 
-	// Setup auth routes
+	// Setup API Routes
+	// Auth routes handle their own /api/auth prefix
 	router.SetupAuthRoutes(app, database.DB)
+
+	// Other routes grouped under /api
+	api := app.Group("/api")
+	router.SetupUserRoutes(api, database.DB)
+	router.SetupKYCRoutes(api, database.DB)
+	router.SetupWalletRoutes(api, database.DB)
+	router.SetupTransactionRoutes(api, database.DB)
+	router.SetupNotificationRoutes(api, database.DB)
+	router.SetupFileRoutes(api, database.DB)
+	router.SetupBillingRoutes(api, database.DB)
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt)
