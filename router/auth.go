@@ -21,6 +21,7 @@ func SetupAuthRoutes(app *fiber.App, db *gorm.DB) {
 	authRoutes.Post("/logout", authHandler.Logout)
 	authRoutes.Post("/forgot-password", authHandler.ForgotPassword)
 	authRoutes.Post("/reset-password", authHandler.ResetPassword)
+	authRoutes.Post("/google", authHandler.GoogleAuth)
 
 	// Protected routes (require authentication)
 	authRoutes.Get("/me", middleware.JWTMiddleware(db), authHandler.GetMe)

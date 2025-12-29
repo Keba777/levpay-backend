@@ -14,8 +14,9 @@ type User struct {
 	FirstName      string          `gorm:"not null"`
 	LastName       string          `gorm:"not null"`
 	Email          string          `gorm:"unique;not null"`
-	Phone          string          `gorm:"unique;not null"`
-	PasswordHash   string          `gorm:"not null"`
+	Phone          *string         `gorm:"unique"` // Nullable for OAuth users
+	PasswordHash   *string         // Nullable to support OAuth-only accounts
+	GoogleID       *string         `gorm:"unique"` // For tracking Google accounts
 	DOB            *time.Time      // Optional
 	Address        *string         // Optional
 	KYCStatus      string          `gorm:"default:'pending'"` // Enum: pending, verified, rejected
@@ -29,13 +30,19 @@ type User struct {
 }
 
 // PrepareResponse sanitizes user data for API responses
+// PrepareResponse sanitizes user data for API responses
 func (u *User) PrepareResponse() UserResponse {
+	phone := ""
+	if u.Phone != nil {
+		phone = *u.Phone
+	}
+
 	return UserResponse{
 		ID:        u.ID,
 		FirstName: u.FirstName,
 		LastName:  u.LastName,
 		Email:     u.Email,
-		Phone:     u.Phone,
+		Phone:     phone,
 		KYCStatus: u.KYCStatus,
 		Role:      u.Role,
 		CreatedAt: u.CreatedAt,

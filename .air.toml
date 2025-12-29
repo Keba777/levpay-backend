@@ -4,8 +4,8 @@ tmp_dir = "tmp"
 
 [build]
 # Build the correct service using APP_SERVICE env var
-cmd = 'sh -lc "mkdir -p tmp && /usr/local/go/bin/go build -o tmp/main ./cmd/${APP_SERVICE}/main.go"'
-bin = "tmp/main"
+cmd = 'sh -lc "mkdir -p tmp && /usr/local/go/bin/go build -o tmp/${APP_SERVICE} ./cmd/${APP_SERVICE}/main.go"'
+bin = "tmp/${APP_SERVICE}"
 include_ext = ["go", "mod", "sum", "tmpl", "html"]
 exclude_dir = ["vendor", "tmp", "migrations", "docs", "nginx"]
 delay = 300

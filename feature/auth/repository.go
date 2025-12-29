@@ -32,8 +32,8 @@ func (r *Repository) CreateUser(req models.RegisterRequest) (*models.User, error
 		FirstName:    req.FirstName,
 		LastName:     req.LastName,
 		Email:        req.Email,
-		Phone:        req.Phone,
-		PasswordHash: hashedPassword,
+		Phone:        &req.Phone,
+		PasswordHash: &hashedPassword,
 		Role:         "user", // Default role
 		KYCStatus:    "pending",
 	}
@@ -55,6 +55,47 @@ func (r *Repository) CreateUser(req models.RegisterRequest) (*models.User, error
 	}
 
 	return user, nil
+}
+
+// CreateOAuthUser creates a new user from OAuth provider
+func (r *Repository) CreateOAuthUser(email, firstName, lastName, googleID string) (*models.User, error) {
+	user := &models.User{
+		FirstName:    firstName,
+		LastName:     lastName,
+		Email:        email,
+		GoogleID:     &googleID,
+		Role:         "user",
+		KYCStatus:    "pending",
+		Phone:        nil, // OAuth users might not have phone initially
+		PasswordHash: nil,
+	}
+
+	if err := r.db.Create(user).Error; err != nil {
+		return nil, fmt.Errorf("failed to create oauth user: %w", err)
+	}
+
+	// Create default wallet
+	wallet := &models.Wallet{
+		UserID:      user.ID,
+		Currency:    "ETB",
+		Balance:     0,
+		LastUpdated: time.Now(),
+	}
+
+	if err := r.db.Create(wallet).Error; err != nil {
+		return nil, fmt.Errorf("failed to create wallet: %w", err)
+	}
+
+	return user, nil
+}
+
+// GetUserByGoogleID returns a user by their Google ID
+func (r *Repository) GetUserByGoogleID(googleID string) (*models.User, error) {
+	var user models.User
+	if err := r.db.Preload("Wallet").Preload("Sessions").First(&user, "google_id = ?", googleID).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
 }
 
 // GetUserByEmail finds a user by email
@@ -149,7 +190,11 @@ func (r *Repository) ValidateCredentials(email, password string) (*models.User, 
 		return nil, fmt.Errorf("invalid credentials")
 	}
 
-	if !utils.PWD.CheckPasswordHash(password, user.PasswordHash) {
+	if user.PasswordHash == nil {
+		return nil, fmt.Errorf("this account uses Google login")
+	}
+
+	if !utils.PWD.CheckPasswordHash(password, *user.PasswordHash) {
 		return nil, fmt.Errorf("invalid credentials")
 	}
 

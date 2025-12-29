@@ -13,6 +13,7 @@ import (
 	"github.com/Keba777/levpay-backend/internal/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func main() {
@@ -32,6 +33,13 @@ func main() {
 	app := fiber.New(fiber.Config{
 		Network: "tcp",
 	})
+
+	// CORS middleware
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+	}))
 
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Status(200).JSON(fiber.Map{
