@@ -10,7 +10,9 @@ import (
 
 	"github.com/Keba777/levpay-backend/internal/config"
 	"github.com/Keba777/levpay-backend/internal/database"
+	"github.com/Keba777/levpay-backend/internal/storage"
 	"github.com/Keba777/levpay-backend/internal/utils"
+	"github.com/Keba777/levpay-backend/router"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -19,6 +21,7 @@ import (
 func main() {
 	config.InitConfig()
 	database.Connect()
+	storage.InitMinio()
 
 	logger := utils.GetLogger("user")
 	logger.Info("Running database AutoMigrate...")
@@ -50,6 +53,10 @@ func main() {
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendStatus(200)
 	})
+
+	// Setup API routes
+	api := app.Group("/api")
+	router.SetupUserRoutes(api, database.DB)
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt)

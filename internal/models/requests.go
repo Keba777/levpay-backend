@@ -63,11 +63,21 @@ type ChangePasswordRequest struct {
 // ==================== User Requests ====================
 
 // UpdateUserRequest for updating user profile
+// UpdateUserRequest for updating user profile
 type UpdateUserRequest struct {
 	FirstName string  `json:"first_name,omitempty"`
 	LastName  string  `json:"last_name,omitempty"`
 	Phone     string  `json:"phone,omitempty"`
 	Address   *string `json:"address,omitempty"`
+	Username  *string `json:"username,omitempty"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
+}
+
+// UpdateSettingsRequest for updating user preferences
+type UpdateSettingsRequest struct {
+	Currency      string `json:"currency,omitempty"`
+	Language      string `json:"language,omitempty"`
+	Notifications *bool  `json:"notifications,omitempty"`
 }
 
 // ==================== Wallet Requests ====================

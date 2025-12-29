@@ -32,14 +32,17 @@ type LoggedInUserResponse struct {
 
 // UserResponse sanitized user data for API responses
 type UserResponse struct {
-	ID        uuid.UUID `json:"id"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	Email     string    `json:"email"`
-	Phone     string    `json:"phone"`
-	KYCStatus string    `json:"kyc_status"`
-	Role      string    `json:"role"`
-	CreatedAt time.Time `json:"created_at"`
+	ID          uuid.UUID `json:"id"`
+	FirstName   string    `json:"first_name"`
+	LastName    string    `json:"last_name"`
+	Username    string    `json:"username"`
+	AvatarURL   string    `json:"avatar_url"`
+	Email       string    `json:"email"`
+	Phone       string    `json:"phone"`
+	Preferences string    `json:"preferences"` // JSON string
+	KYCStatus   string    `json:"kyc_status"`
+	Role        string    `json:"role"`
+	CreatedAt   time.Time `json:"created_at"`
 }
 
 // ==================== Wallet Responses ====================
