@@ -1,8 +1,13 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/signal"
+	"sync"
+	"time"
 
 	"github.com/Keba777/levpay-backend/feature/notification"
 	"github.com/Keba777/levpay-backend/internal/config"
@@ -10,7 +15,10 @@ import (
 	"github.com/Keba777/levpay-backend/internal/models"
 	"github.com/Keba777/levpay-backend/internal/rabbitmq"
 	"github.com/Keba777/levpay-backend/internal/utils"
+	"github.com/Keba777/levpay-backend/router"
 
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -22,14 +30,12 @@ func processMessages(messages <-chan amqp.Delivery) {
 		var msg models.Message
 		if err := json.Unmarshal(message.Body, &msg); err != nil {
 			logger.ErrorWithErr("Failed to unmarshal message", err)
-			message.Ack(false) // Ack to remove bad message or Nack to retry?
-			// If strictly unmarshal error, it's likely bad format, so Ack to discard is safer than infinite loop.
+			message.Ack(false)
 			continue
 		}
 
 		if err := svc.SendEmail(msg); err != nil {
 			logger.ErrorWithErr("Failed to send email", err)
-			// Decide on retry logic. handling basic failure for now.
 		} else {
 			logger.Info("Email sent successfully", utils.Field{Key: "to", Value: msg.To})
 		}
@@ -57,10 +63,61 @@ func main() {
 	// Initialize Service
 	svc = notification.NewService(config.CFG)
 
-	// Consume messages
-	err := rabbitmq.RMQ.Consume(processMessages)
-	if err != nil {
-		logger.ErrorWithErr("Failed to consume", err)
+	// Start HTTP server
+	app := fiber.New(fiber.Config{
+		Network: "tcp",
+	})
+
+	// CORS middleware
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+	}))
+
+	app.Get("/", func(c *fiber.Ctx) error {
+		return c.Status(200).JSON(fiber.Map{
+			"status":  "ok",
+			"service": config.CFG.App.Service,
+		})
+	})
+	app.Get("/health", func(c *fiber.Ctx) error {
+		return c.SendStatus(200)
+	})
+
+	// Setup API Routes
+	api := app.Group("/api")
+	router.SetupNotificationRoutes(api, database.DB)
+
+	// Start RabbitMQ consumer in goroutine
+	go func() {
+		err := rabbitmq.RMQ.Consume(processMessages)
+		if err != nil {
+			logger.ErrorWithErr("Failed to consume", err)
+		}
+	}()
+
+	// Graceful shutdown
+	done := make(chan os.Signal, 1)
+	signal.Notify(done, os.Interrupt)
+
+	var serviceShutdown sync.WaitGroup
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(config.CFG.App.Shutdown)*time.Second)
+	defer cancel()
+
+	go func() {
+		<-done
+		logger.Info("Graceful shutdown initiated")
+		serviceShutdown.Add(1)
+		defer serviceShutdown.Done()
+		_ = app.ShutdownWithContext(ctx)
+	}()
+
+	if err := app.Listen(config.CFG.App.Listen); err != nil {
+		logger.ErrorWithErr("Failed to start notification service", err)
 		panic(err)
 	}
+
+	serviceShutdown.Wait()
+	logger.Info("Notification service shutdown completed")
 }
