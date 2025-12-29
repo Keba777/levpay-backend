@@ -96,6 +96,20 @@ type WithdrawRequest struct {
 	PaymentMethod string  `json:"payment_method" binding:"required"`
 }
 
+// ==================== Payment Method Requests ====================
+
+// CreatePaymentMethodRequest for linking a new payment method
+type CreatePaymentMethodRequest struct {
+	Type      string                 `json:"type" binding:"required"` // bank, card, mobile_wallet
+	Details   map[string]interface{} `json:"details" binding:"required"`
+	IsDefault bool                   `json:"is_default"`
+}
+
+// UpdatePaymentMethodRequest for updating an existing payment method
+type UpdatePaymentMethodRequest struct {
+	IsDefault *bool `json:"is_default,omitempty"`
+}
+
 // ==================== Transaction Requests ====================
 
 // TransferRequest for P2P transfers
