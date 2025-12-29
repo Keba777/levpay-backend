@@ -10,14 +10,18 @@ import (
 
 	"github.com/Keba777/levpay-backend/internal/config"
 	"github.com/Keba777/levpay-backend/internal/database"
+	"github.com/Keba777/levpay-backend/internal/storage"
 	"github.com/Keba777/levpay-backend/internal/utils"
+	"github.com/Keba777/levpay-backend/router"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func main() {
 	config.InitConfig()
 	database.Connect()
+	storage.InitMinio()
 
 	logger := utils.GetLogger("kyc")
 	logger.Info("Running database AutoMigrate...")
@@ -33,6 +37,13 @@ func main() {
 		Network: "tcp",
 	})
 
+	// CORS middleware
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
+		AllowMethods: "GET, POST, PUT, DELETE, OPTIONS",
+	}))
+
 	app.Get("/", func(c *fiber.Ctx) error {
 		return c.Status(200).JSON(fiber.Map{
 			"status":  "ok",
@@ -42,6 +53,10 @@ func main() {
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.SendStatus(200)
 	})
+
+	// Setup API Routes
+	api := app.Group("/api")
+	router.SetupKYCRoutes(api, database.DB)
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt)

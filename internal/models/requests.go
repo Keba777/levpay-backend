@@ -115,14 +115,6 @@ type PaymentRequest struct {
 	Description *string    `json:"description,omitempty"`
 }
 
-// ==================== KYC Requests ====================
-
-// SubmitKYCRequest for submitting KYC documents
-type SubmitKYCRequest struct {
-	DocumentType string `json:"document_type" binding:"required"` // id_card, passport, etc.
-	// File is handled via multipart form
-}
-
 // ==================== Payment Method Requests ====================
 
 // AddPaymentMethodRequest for linking payment methods
