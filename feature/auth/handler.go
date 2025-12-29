@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Keba777/levpay-backend/internal/models"
+	"github.com/Keba777/levpay-backend/internal/rabbitmq"
 	"github.com/Keba777/levpay-backend/internal/utils"
 	"github.com/gofiber/fiber/v2"
 	"google.golang.org/api/idtoken"
@@ -74,9 +75,16 @@ func (h *Handler) Register(c *fiber.Ctx) error {
 	if err != nil {
 		log.Printf("[Register] Failed to generate forgot token: %v", err)
 	} else {
-		// TODO: Send welcome email with password setup link
 		setupLink := fmt.Sprintf("%s/auth/reset-password?token=%s", os.Getenv("FRONTEND_URL"), forgotToken)
-		log.Printf("[Register] Welcome email link for %s: %s", user.Email, setupLink)
+
+		// Publish welcome email message
+		msg := models.Message{
+			From:    os.Getenv("MSG_FROM"),
+			To:      []string{user.Email},
+			Subject: "Welcome to LevPay - Verify your account",
+			Body:    fmt.Sprintf("Welcome %s,\n\nPlease verify your account by setting your password using the link below:\n\n%s\n\nIf you did not create this account, please ignore this email.", user.FirstName, setupLink),
+		}
+		rabbitmq.RMQ.Publish(msg)
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(models.InfoResponse{
@@ -277,9 +285,17 @@ func (h *Handler) ForgotPassword(c *fiber.Ctx) error {
 		})
 	}
 
-	// TODO: Send password reset email
+	// Send password reset email
 	resetLink := fmt.Sprintf("%s/auth/reset-password?token=%s", os.Getenv("FRONTEND_URL"), forgotToken)
-	log.Printf("[ForgotPassword] Reset link for %s: %s", user.Email, resetLink)
+
+	// Publish reset email message
+	msg := models.Message{
+		From:    os.Getenv("MSG_FROM"),
+		To:      []string{user.Email},
+		Subject: "Reset your LevPay password",
+		Body:    fmt.Sprintf("Hello %s,\n\nYou requested a password reset. Click the link below to reset your password:\n\n%s\n\nLink expires in %d minutes.\n\nIf you did not request this, please ignore this email.", user.FirstName, resetLink, h.forgotExpiry/60),
+	}
+	rabbitmq.RMQ.Publish(msg)
 
 	return c.JSON(models.InfoResponse{
 		Message: "If the email exists, a password reset link has been sent",

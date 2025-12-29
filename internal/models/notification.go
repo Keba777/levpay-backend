@@ -17,3 +17,26 @@ type Notification struct {
 	Status  string     `gorm:"default:'sent'"` // Enum: pending, sent, failed
 	SentAt  *time.Time // Optional
 }
+
+type Message struct {
+	From     string   `json:"from" binding:"required"`
+	FromName string   `json:"from_name,omitempty"`
+	To       []string `json:"to"`
+	Subject  string   `json:"subject"`
+	Body     string   `json:"body"`
+}
+
+type ProcessedFilesMessage struct {
+	Recievers []string `json:"recievers"`
+	Subject   string   `json:"subject"`
+	Files     struct {
+		Processed   []string            `json:"processed"`
+		Unprocessed []UnprocessableFile `json:"unprocessed"`
+	}
+	Template string `json:"template" binding:"required" default:"processedFiles"`
+}
+
+type UnprocessableFile struct {
+	FileName string `json:"fileName"`
+	Reason   string `json:"reason"`
+}
