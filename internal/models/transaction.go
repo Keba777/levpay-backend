@@ -6,18 +6,35 @@ import (
 	"gorm.io/gorm"
 )
 
+// Transaction Type Constants
+const (
+	TransactionTypeDeposit  = "deposit"
+	TransactionTypeWithdraw = "withdraw"
+	TransactionTypeTransfer = "transfer"
+	TransactionTypePayment  = "payment"
+	TransactionTypeTopUp    = "topup"
+)
+
+// Transaction Status Constants
+const (
+	TransactionStatusPending   = "pending"
+	TransactionStatusCompleted = "completed"
+	TransactionStatusFailed    = "failed"
+	TransactionStatusRefunded  = "refunded"
+)
+
 // Transaction represents a financial transaction
 type Transaction struct {
 	gorm.Model
 	ID          uuid.UUID      `gorm:"type:uuid;default:gen_random_uuid();primaryKey"`
 	FromUserID  uuid.UUID      `gorm:"not null;type:uuid"`
-	ToUserID    *uuid.UUID     `gorm:"type:uuid"` // Optional
+	ToUserID    *uuid.UUID     `gorm:"type:uuid"` // Optional (null for topup/withdraw)
 	Amount      float64        `gorm:"not null"`
-	Currency    string         `gorm:"not null"`
-	Type        string         `gorm:"not null"`          // Enum: deposit, withdraw, transfer, payment
-	Status      string         `gorm:"default:'pending'"` // Enum: pending, completed, failed, refunded
+	Currency    string         `gorm:"not null;default:'ETB'"`
+	Type        string         `gorm:"not null"`          // deposit, withdraw, transfer, payment, topup
+	Status      string         `gorm:"default:'pending'"` // pending, completed, failed, refunded
 	Description *string        // Optional
-	Metadata    datatypes.JSON // JSONB
+	Metadata    datatypes.JSON `gorm:"type:jsonb"` // JSONB for additional data
 	Fee         float64        `gorm:"default:0"`
 	FromWallet  Wallet         `gorm:"foreignKey:FromUserID;references:UserID"`
 	ToWallet    Wallet         `gorm:"foreignKey:ToUserID;references:UserID"`
