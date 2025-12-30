@@ -16,8 +16,10 @@ import (
 	"github.com/Keba777/levpay-backend/internal/utils"
 	"github.com/Keba777/levpay-backend/router"
 
+	_ "github.com/Keba777/levpay-backend/docs"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/swagger"
 )
 
 func main() {
@@ -102,6 +104,9 @@ func main() {
 	router.SetupBillingRoutes(api, database.DB)
 	router.SetupPaymentMethodRoutes(api, database.DB)
 	router.SetupAdminRoutes(api, database.DB)
+
+	// Swagger Configuration
+	app.Get("/swagger/*", swagger.HandlerDefault)
 
 	done := make(chan os.Signal, 1)
 	signal.Notify(done, os.Interrupt)
